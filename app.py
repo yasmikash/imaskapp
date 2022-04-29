@@ -1,11 +1,10 @@
-import flask
-from flask import jsonify
-import pandas as pd
+from flask import Flask, jsonify, request
+import numpy as np
 
 # Model librabries
 from models.breathing.lib.BreathingDetector import BreathingDetector
 
-app = flask.Flask(__name__)
+app = Flask(__name__)
 
 # Keep the model initialization only at the startup
 breathing_detector = BreathingDetector(
@@ -16,9 +15,13 @@ breathing_detector = BreathingDetector(
 
 @app.route("/breathing", methods=["POST"])
 def home():
-    provided_breathing_signal = pd.read_csv("models/breathing/data/fast.csv")["read"].values
-    peaks, probs = breathing_detector.find_peaks(provided_breathing_signal[:500])
-    return jsonify(peaks.tolist())
+    request_data = request.json
+    provided_breathing_signal = np.array(request_data["readings"])
+    peaks = breathing_detector.find_peaks(provided_breathing_signal)
+    response = {
+        "bpm": len(peaks[0].tolist())
+    }
+    return jsonify(response)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
